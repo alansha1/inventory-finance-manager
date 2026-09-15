@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory &amp; Finance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #eef1fa;
+    --card: #ffffff;
+    --ink: #1a2035;
+    --ink-soft: #6b7590;
+    --rule: #e3e7f3;
+
+    --indigo: #5b4bda;
+    --indigo-deep: #3f31b8;
+    --cyan: #0aa8c2;
+    --amber: #f2a03d;
+    --coral: #ef5a6f;
+    --emerald: #17a673;
+    --emerald2: #1cb87c;
+    --pink: #e454a0;
+
+    --positive: #1cb87c;
+    --negative: #ef5a6f;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px 56px; }
+
+  .banner {
+    background: linear-gradient(120deg, #b8862f 0%, #ef5a6f 55%, #5b4bda 100%);
+    border-radius: 0 0 28px 28px;
+    padding: 36px 32px 30px;
+    margin-bottom: -40px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .banner::after {
+    content: "";
+    position: absolute;
+    right: -60px; top: -80px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .banner-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .banner-title h1 {
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: 30px;
+    letter-spacing: -0.01em;
+  }
+  .banner-title p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    margin-top: 6px;
+    font-weight: 500;
+  }
+  .banner-meta {
+    text-align: right;
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+  }
+  .banner-meta strong { color: #fff; font-size: 15px; }
+
+  .filter-bar {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 14px 30px -12px rgba(63,49,184,0.25);
+    padding: 16px 22px;
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 30px;
+  }
+  .filter-item { display: flex; align-items: center; gap: 8px; }
+  .filter-item label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .filter-item select {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--indigo-deep);
+    background: #f1effc;
+    border: 1px solid #e0dbf7;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  .filter-item select:focus { outline: 2px solid var(--indigo); outline-offset: 1px; }
+  .reset-link {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--coral);
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 26px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: 0 8px 20px -10px rgba(26,32,53,0.12);
+    border-top: 4px solid var(--indigo);
+  }
+  .kpi-card.c-value { border-top-color: var(--indigo); }
+  .kpi-card.c-reorder { border-top-color: var(--coral); }
+  .kpi-card.c-forecast { border-top-color: var(--amber); }
+  .kpi-card.c-spend { border-top-color: var(--emerald2); }
+
+  .kpi-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
+  .kpi-value { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 27px; color: var(--ink); }
+  .kpi-sub { font-size: 12px; font-weight: 600; margin-top: 6px; color: var(--ink-soft); }
+  .kpi-sub.negative { color: var(--negative); }
+  .kpi-sub.positive { color: var(--positive); }
+
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .panel {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    box-shadow: 0 8px 20px -10px rgba(26,32,53,0.10);
+  }
+  .panel h3 { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink); margin-bottom: 4px; }
+  .panel .panel-sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; }
+  .chart-tall canvas { max-height: 300px; }
+  .chart-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .chart-short canvas { max-height: 240px; }
+
+  .table-panel {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 22px 24px 8px;
+    overflow-x: auto;
+    box-shadow: 0 8px 20px -10px rgba(26,32,53,0.10);
+  }
+  .table-panel h3 { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink); margin-bottom: 4px; }
+  .table-panel .panel-sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; }
+  table.ledger { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.ledger thead th {
+    text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--indigo);
+    color: var(--indigo-deep); font-weight: 700; font-size: 12px; cursor: pointer;
+    user-select: none; white-space: nowrap;
+  }
+  table.ledger thead th:hover { color: var(--coral); }
+  table.ledger tbody td { padding: 9px 12px; border-bottom: 1px solid var(--rule); color: var(--ink); }
+  table.ledger tbody tr:nth-child(even) { background: #f7f8fd; }
+  table.ledger tbody tr:hover { background: #f1effc; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #fff; }
+  .table-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0 14px; font-size: 12px; color: var(--ink-soft);
+  }
+  .table-foot button {
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: var(--indigo-deep);
+    background: #f1effc; border: 1px solid #e0dbf7; border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  }
+  .table-foot button:hover { background: #e5e1fb; }
+  .table-foot button:disabled { opacity: 0.4; cursor: default; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tab-btn {
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: var(--ink-soft);
+    background: var(--card); border: 1px solid var(--rule); border-radius: 999px; padding: 7px 16px; cursor: pointer;
+  }
+  .tab-btn.active { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+
+  footer.dashboard-footer {
+    margin-top: 20px; padding-top: 16px; font-size: 11px; color: var(--ink-soft);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  @media (max-width: 860px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .chart-grid, .chart-row-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner">
+    <div class="banner-top">
+      <div class="banner-title">
+        <h1>Inventory &amp; Finance Dashboard</h1>
+        <p>Stock levels, purchase orders, and spend across 6 categories and 6 suppliers</p>
+      </div>
+      <div class="banner-meta">
+        <div><strong id="meta-rows">0</strong> items tracked</div>
+        <div id="meta-po-rows">0 purchase orders</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-item">
+      <label for="f-category">Category</label>
+      <select id="f-category"><option value="all">All</option></select>
+    </div>
+    <div class="filter-item">
+      <label for="f-supplier">Supplier</label>
+      <select id="f-supplier"><option value="all">All</option></select>
+    </div>
+    <div class="filter-item">
+      <label for="f-status">Status</label>
+      <select id="f-status"><option value="all">All</option></select>
+    </div>
+    <span class="reset-link" id="reset-filters">Reset filters</span>
+  </div>
+
+  <section class="kpi-row">
+    <div class="kpi-card c-value">
+      <div class="kpi-label">Total inventory value</div>
+      <div class="kpi-value" id="kpi-value">—</div>
+      <div class="kpi-sub" id="kpi-value-sub"></div>
+    </div>
+    <div class="kpi-card c-reorder">
+      <div class="kpi-label">Items needing reorder</div>
+      <div class="kpi-value" id="kpi-reorder">—</div>
+      <div class="kpi-sub negative" id="kpi-reorder-sub"></div>
+    </div>
+    <div class="kpi-card c-forecast">
+      <div class="kpi-label">Forecast reorder cost</div>
+      <div class="kpi-value" id="kpi-forecast">—</div>
+      <div class="kpi-sub" id="kpi-forecast-sub"></div>
+    </div>
+    <div class="kpi-card c-spend">
+      <div class="kpi-label">Total PO spend</div>
+      <div class="kpi-value" id="kpi-spend">—</div>
+      <div class="kpi-sub" id="kpi-spend-sub"></div>
+    </div>
+  </section>
+
+  <section class="chart-grid">
+    <div class="panel chart-tall">
+      <h3>Monthly purchase order spend</h3>
+      <div class="panel-sub">Total cost of purchase orders placed each month</div>
+      <canvas id="chart-trend"></canvas>
+    </div>
+    <div class="panel chart-tall">
+      <h3>Inventory value by category</h3>
+      <div class="panel-sub">Share of total stock value across categories</div>
+      <canvas id="chart-category"></canvas>
+    </div>
+  </section>
+
+  <section class="chart-row-2">
+    <div class="panel chart-short">
+      <h3>PO spend by supplier</h3>
+      <div class="panel-sub">Total purchase order value per supplier</div>
+      <canvas id="chart-supplier"></canvas>
+    </div>
+    <div class="panel chart-short">
+      <h3>Stock status by category</h3>
+      <div class="panel-sub">Items at or below reorder level vs. healthy stock</div>
+      <canvas id="chart-status"></canvas>
+    </div>
+  </section>
+
+  <section class="table-panel">
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-inventory">Inventory</button>
+      <button class="tab-btn" id="tab-po">Purchase orders</button>
+    </div>
+    <h3 id="table-title">Inventory</h3>
+    <div class="panel-sub" id="table-sub">Sortable — click a column header.</div>
+    <table class="ledger">
+      <thead><tr id="table-head"></tr></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div class="table-foot">
+      <span id="table-range"></span>
+      <span>
+        <button id="prev-page">Previous</button>
+        <button id="next-page">Next</button>
+      </span>
+    </div>
+  </section>
+
+  <footer class="dashboard-footer">
+    <span>Synthetic dataset for portfolio demonstration.</span>
+    <span>Vanilla JS + Chart.js, single self-contained file.</span>
+  </footer>
+
+</div>
+
+<script>
+const INVENTORY = [{"ItemID":4001,"ItemName":"Laptop v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":379.25,"UnitPrice":582.87,"QuantityOnHand":6,"ReorderLevel":12,"ReorderQuantity":72,"InventoryValue":2275.5,"ReorderCost":27306.0,"Status":"Reorder"},{"ItemID":4002,"ItemName":"Laptop v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":215.28,"UnitPrice":327.1,"QuantityOnHand":7,"ReorderLevel":39,"ReorderQuantity":52,"InventoryValue":1506.96,"ReorderCost":11194.56,"Status":"Reorder"},{"ItemID":4003,"ItemName":"Monitor v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":16.92,"UnitPrice":26.4,"QuantityOnHand":8,"ReorderLevel":17,"ReorderQuantity":25,"InventoryValue":135.36,"ReorderCost":423.0,"Status":"Reorder"},{"ItemID":4004,"ItemName":"Docking Station v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":170.96,"UnitPrice":307.06,"QuantityOnHand":15,"ReorderLevel":40,"ReorderQuantity":34,"InventoryValue":2564.4,"ReorderCost":5812.64,"Status":"Reorder"},{"ItemID":4005,"ItemName":"Docking Station v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":252.99,"UnitPrice":417.38,"QuantityOnHand":7,"ReorderLevel":28,"ReorderQuantity":57,"InventoryValue":1770.93,"ReorderCost":14420.43,"Status":"Reorder"},{"ItemID":4006,"ItemName":"Docking Station v3","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":159.88,"UnitPrice":301.49,"QuantityOnHand":5,"ReorderLevel":27,"ReorderQuantity":74,"InventoryValue":799.4,"ReorderCost":11831.12,"Status":"Reorder"},{"ItemID":4007,"ItemName":"Wireless Mouse v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":117.26,"UnitPrice":162.59,"QuantityOnHand":15,"ReorderLevel":28,"ReorderQuantity":39,"InventoryValue":1758.9,"ReorderCost":4573.14,"Status":"Reorder"},{"ItemID":4008,"ItemName":"Headset v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":326.82,"UnitPrice":460.3,"QuantityOnHand":74,"ReorderLevel":28,"ReorderQuantity":60,"InventoryValue":24184.68,"ReorderCost":19609.2,"Status":"OK"},{"ItemID":4009,"ItemName":"Headset v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":76.77,"UnitPrice":104.29,"QuantityOnHand":91,"ReorderLevel":12,"ReorderQuantity":56,"InventoryValue":6986.07,"ReorderCost":4299.12,"Status":"OK"},{"ItemID":4010,"ItemName":"Headset v3","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":25.72,"UnitPrice":36.61,"QuantityOnHand":87,"ReorderLevel":27,"ReorderQuantity":47,"InventoryValue":2237.64,"ReorderCost":1208.84,"Status":"OK"},{"ItemID":4011,"ItemName":"Webcam v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":187.31,"UnitPrice":347.28,"QuantityOnHand":46,"ReorderLevel":19,"ReorderQuantity":35,"InventoryValue":8616.26,"ReorderCost":6555.85,"Status":"OK"},{"ItemID":4012,"ItemName":"Webcam v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":318.16,"UnitPrice":547.04,"QuantityOnHand":31,"ReorderLevel":12,"ReorderQuantity":56,"InventoryValue":9862.96,"ReorderCost":17816.96,"Status":"OK"},{"ItemID":4013,"ItemName":"USB Hub v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":211.03,"UnitPrice":385.15,"QuantityOnHand":93,"ReorderLevel":24,"ReorderQuantity":38,"InventoryValue":19625.79,"ReorderCost":8019.14,"Status":"OK"},{"ItemID":4014,"ItemName":"USB Hub v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","UnitCost":244.37,"UnitPrice":328.41,"QuantityOnHand":65,"ReorderLevel":23,"ReorderQuantity":30,"InventoryValue":15884.05,"ReorderCost":7331.1,"Status":"OK"},{"ItemID":4015,"ItemName":"Notebook v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":62.49,"UnitPrice":99.57,"QuantityOnHand":5,"ReorderLevel":40,"ReorderQuantity":62,"InventoryValue":312.45,"ReorderCost":3874.38,"Status":"Reorder"},{"ItemID":4016,"ItemName":"Notebook v2","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":32.89,"UnitPrice":53.77,"QuantityOnHand":101,"ReorderLevel":38,"ReorderQuantity":72,"InventoryValue":3321.89,"ReorderCost":2368.08,"Status":"OK"},{"ItemID":4017,"ItemName":"Printer Paper (Ream) v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":137.37,"UnitPrice":207.44,"QuantityOnHand":63,"ReorderLevel":28,"ReorderQuantity":71,"InventoryValue":8654.31,"ReorderCost":9753.27,"Status":"OK"},{"ItemID":4018,"ItemName":"Printer Paper (Ream) v2","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":183.57,"UnitPrice":331.16,"QuantityOnHand":120,"ReorderLevel":18,"ReorderQuantity":50,"InventoryValue":22028.4,"ReorderCost":9178.5,"Status":"OK"},{"ItemID":4019,"ItemName":"Stapler v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":266.33,"UnitPrice":355.92,"QuantityOnHand":89,"ReorderLevel":19,"ReorderQuantity":61,"InventoryValue":23703.37,"ReorderCost":16246.13,"Status":"OK"},{"ItemID":4020,"ItemName":"Stapler v2","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":232.02,"UnitPrice":396.46,"QuantityOnHand":57,"ReorderLevel":19,"ReorderQuantity":65,"InventoryValue":13225.14,"ReorderCost":15081.3,"Status":"OK"},{"ItemID":4021,"ItemName":"Stapler v3","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":155.54,"UnitPrice":264.6,"QuantityOnHand":2,"ReorderLevel":40,"ReorderQuantity":49,"InventoryValue":311.08,"ReorderCost":7621.46,"Status":"Reorder"},{"ItemID":4022,"ItemName":"Pen Pack v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":68.88,"UnitPrice":94.38,"QuantityOnHand":7,"ReorderLevel":16,"ReorderQuantity":69,"InventoryValue":482.16,"ReorderCost":4752.72,"Status":"Reorder"},{"ItemID":4023,"ItemName":"Pen Pack v2","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":116.4,"UnitPrice":202.89,"QuantityOnHand":50,"ReorderLevel":22,"ReorderQuantity":78,"InventoryValue":5820.0,"ReorderCost":9079.2,"Status":"OK"},{"ItemID":4024,"ItemName":"Sticky Notes v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":34.07,"UnitPrice":53.47,"QuantityOnHand":70,"ReorderLevel":18,"ReorderQuantity":76,"InventoryValue":2384.9,"ReorderCost":2589.32,"Status":"OK"},{"ItemID":4025,"ItemName":"Sticky Notes v2","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":56.5,"UnitPrice":88.04,"QuantityOnHand":70,"ReorderLevel":18,"ReorderQuantity":65,"InventoryValue":3955.0,"ReorderCost":3672.5,"Status":"OK"},{"ItemID":4026,"ItemName":"Binder v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":394.61,"UnitPrice":674.64,"QuantityOnHand":48,"ReorderLevel":40,"ReorderQuantity":34,"InventoryValue":18941.28,"ReorderCost":13416.74,"Status":"OK"},{"ItemID":4027,"ItemName":"Binder v2","Category":"Office Supplies","Supplier":"Leinster Office Supplies","UnitCost":62.07,"UnitPrice":87.25,"QuantityOnHand":29,"ReorderLevel":31,"ReorderQuantity":34,"InventoryValue":1800.03,"ReorderCost":2110.38,"Status":"Reorder"},{"ItemID":4028,"ItemName":"Office Desk v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","UnitCost":195.02,"UnitPrice":322.46,"QuantityOnHand":33,"ReorderLevel":19,"ReorderQuantity":20,"InventoryValue":6435.66,"ReorderCost":3900.4,"Status":"OK"},{"ItemID":4029,"ItemName":"Ergonomic Chair v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","UnitCost":168.74,"UnitPrice":256.75,"QuantityOnHand":72,"ReorderLevel":20,"ReorderQuantity":80,"InventoryValue":12149.28,"ReorderCost":13499.2,"Status":"OK"},{"ItemID":4030,"ItemName":"Filing Cabinet v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","UnitCost":276.82,"UnitPrice":445.49,"QuantityOnHand":79,"ReorderLevel":30,"ReorderQuantity":63,"InventoryValue":21868.78,"ReorderCost":17439.66,"Status":"OK"},{"ItemID":4031,"ItemName":"Bookshelf v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","UnitCost":23.49,"UnitPrice":43.22,"QuantityOnHand":99,"ReorderLevel":40,"ReorderQuantity":75,"InventoryValue":2325.51,"ReorderCost":1761.75,"Status":"OK"},{"ItemID":4032,"ItemName":"Bookshelf v2","Category":"Furniture","Supplier":"Emerald Furniture Co.","UnitCost":272.87,"UnitPrice":446.3,"QuantityOnHand":50,"ReorderLevel":22,"ReorderQuantity":45,"InventoryValue":13643.5,"ReorderCost":12279.15,"Status":"OK"},{"ItemID":4033,"ItemName":"Bookshelf v3","Category":"Furniture","Supplier":"Emerald Furniture Co.","UnitCost":43.21,"UnitPrice":72.62,"QuantityOnHand":7,"ReorderLevel":16,"ReorderQuantity":24,"InventoryValue":302.47,"ReorderCost":1037.04,"Status":"Reorder"},{"ItemID":4034,"ItemName":"Whiteboard v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","UnitCost":177.37,"UnitPrice":242.28,"QuantityOnHand":76,"ReorderLevel":11,"ReorderQuantity":26,"InventoryValue":13480.12,"ReorderCost":4611.62,"Status":"OK"},{"ItemID":4035,"ItemName":"Office Suite License v1","Category":"Software","Supplier":"CloudSoft Licensing","UnitCost":227.58,"UnitPrice":369.13,"QuantityOnHand":46,"ReorderLevel":29,"ReorderQuantity":21,"InventoryValue":10468.68,"ReorderCost":4779.18,"Status":"OK"},{"ItemID":4036,"ItemName":"Antivirus License v1","Category":"Software","Supplier":"CloudSoft Licensing","UnitCost":349.98,"UnitPrice":583.92,"QuantityOnHand":19,"ReorderLevel":30,"ReorderQuantity":36,"InventoryValue":6649.62,"ReorderCost":12599.28,"Status":"Reorder"},{"ItemID":4037,"ItemName":"Design Tool License v1","Category":"Software","Supplier":"CloudSoft Licensing","UnitCost":241.71,"UnitPrice":382.99,"QuantityOnHand":14,"ReorderLevel":37,"ReorderQuantity":51,"InventoryValue":3383.94,"ReorderCost":12327.21,"Status":"Reorder"},{"ItemID":4038,"ItemName":"Design Tool License v2","Category":"Software","Supplier":"CloudSoft Licensing","UnitCost":397.25,"UnitPrice":627.49,"QuantityOnHand":61,"ReorderLevel":19,"ReorderQuantity":25,"InventoryValue":24232.25,"ReorderCost":9931.25,"Status":"OK"},{"ItemID":4039,"ItemName":"Cloud Storage Plan v1","Category":"Software","Supplier":"CloudSoft Licensing","UnitCost":42.67,"UnitPrice":64.24,"QuantityOnHand":33,"ReorderLevel":25,"ReorderQuantity":73,"InventoryValue":1408.11,"ReorderCost":3114.91,"Status":"OK"},{"ItemID":4040,"ItemName":"Shipping Box (Small) v1","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":66.25,"UnitPrice":87.04,"QuantityOnHand":67,"ReorderLevel":21,"ReorderQuantity":29,"InventoryValue":4438.75,"ReorderCost":1921.25,"Status":"OK"},{"ItemID":4041,"ItemName":"Shipping Box (Small) v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":276.65,"UnitPrice":511.38,"QuantityOnHand":97,"ReorderLevel":26,"ReorderQuantity":39,"InventoryValue":26835.05,"ReorderCost":10789.35,"Status":"OK"},{"ItemID":4042,"ItemName":"Shipping Box (Small) v3","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":391.44,"UnitPrice":711.64,"QuantityOnHand":89,"ReorderLevel":37,"ReorderQuantity":36,"InventoryValue":34838.16,"ReorderCost":14091.84,"Status":"OK"},{"ItemID":4043,"ItemName":"Shipping Box (Large) v1","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":147.95,"UnitPrice":207.16,"QuantityOnHand":98,"ReorderLevel":17,"ReorderQuantity":54,"InventoryValue":14499.1,"ReorderCost":7989.3,"Status":"OK"},{"ItemID":4044,"ItemName":"Shipping Box (Large) v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":217.54,"UnitPrice":348.42,"QuantityOnHand":81,"ReorderLevel":17,"ReorderQuantity":59,"InventoryValue":17620.74,"ReorderCost":12834.86,"Status":"OK"},{"ItemID":4045,"ItemName":"Shipping Box (Large) v3","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":324.98,"UnitPrice":614.52,"QuantityOnHand":109,"ReorderLevel":16,"ReorderQuantity":71,"InventoryValue":35422.82,"ReorderCost":23073.58,"Status":"OK"},{"ItemID":4046,"ItemName":"Bubble Wrap Roll v1","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":327.7,"UnitPrice":571.48,"QuantityOnHand":29,"ReorderLevel":16,"ReorderQuantity":53,"InventoryValue":9503.3,"ReorderCost":17368.1,"Status":"OK"},{"ItemID":4047,"ItemName":"Packing Tape v1","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":143.51,"UnitPrice":189.06,"QuantityOnHand":3,"ReorderLevel":35,"ReorderQuantity":37,"InventoryValue":430.53,"ReorderCost":5309.87,"Status":"Reorder"},{"ItemID":4048,"ItemName":"Packing Tape v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","UnitCost":189.95,"UnitPrice":269.0,"QuantityOnHand":77,"ReorderLevel":40,"ReorderQuantity":42,"InventoryValue":14626.15,"ReorderCost":7977.9,"Status":"OK"},{"ItemID":4049,"ItemName":"Disinfectant Spray v1","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","UnitCost":323.81,"UnitPrice":561.45,"QuantityOnHand":44,"ReorderLevel":40,"ReorderQuantity":43,"InventoryValue":14247.64,"ReorderCost":13923.83,"Status":"OK"},{"ItemID":4050,"ItemName":"Disinfectant Spray v2","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","UnitCost":34.05,"UnitPrice":46.35,"QuantityOnHand":60,"ReorderLevel":16,"ReorderQuantity":41,"InventoryValue":2043.0,"ReorderCost":1396.05,"Status":"OK"},{"ItemID":4051,"ItemName":"Paper Towels v1","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","UnitCost":194.1,"UnitPrice":367.07,"QuantityOnHand":78,"ReorderLevel":36,"ReorderQuantity":20,"InventoryValue":15139.8,"ReorderCost":3882.0,"Status":"OK"},{"ItemID":4052,"ItemName":"Hand Sanitizer v1","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","UnitCost":363.86,"UnitPrice":548.12,"QuantityOnHand":82,"ReorderLevel":12,"ReorderQuantity":73,"InventoryValue":29836.52,"ReorderCost":26561.78,"Status":"OK"},{"ItemID":4053,"ItemName":"Hand Sanitizer v2","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","UnitCost":264.91,"UnitPrice":488.99,"QuantityOnHand":100,"ReorderLevel":32,"ReorderQuantity":68,"InventoryValue":26491.0,"ReorderCost":18013.88,"Status":"OK"},{"ItemID":4054,"ItemName":"Trash Bags v1","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","UnitCost":192.26,"UnitPrice":270.53,"QuantityOnHand":101,"ReorderLevel":30,"ReorderQuantity":41,"InventoryValue":19418.26,"ReorderCost":7882.66,"Status":"OK"}];
+const PO = [{"POID":6001,"Date":"2026-09-26","ItemID":4047,"ItemName":"Packing Tape v1","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":35,"UnitCost":143.51,"TotalCost":5022.85,"MonthKey":"Sep-2026"},{"POID":6002,"Date":"2026-06-13","ItemID":4048,"ItemName":"Packing Tape v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":15,"UnitCost":189.95,"TotalCost":2849.25,"MonthKey":"Jun-2026"},{"POID":6003,"Date":"2026-04-06","ItemID":4011,"ItemName":"Webcam v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":18,"UnitCost":187.31,"TotalCost":3371.58,"MonthKey":"Apr-2026"},{"POID":6004,"Date":"2026-09-05","ItemID":4038,"ItemName":"Design Tool License v2","Category":"Software","Supplier":"CloudSoft Licensing","QuantityOrdered":39,"UnitCost":397.25,"TotalCost":15492.75,"MonthKey":"Sep-2026"},{"POID":6005,"Date":"2026-04-05","ItemID":4040,"ItemName":"Shipping Box (Small) v1","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":48,"UnitCost":66.25,"TotalCost":3180.0,"MonthKey":"Apr-2026"},{"POID":6006,"Date":"2026-06-22","ItemID":4023,"ItemName":"Pen Pack v2","Category":"Office Supplies","Supplier":"Leinster Office Supplies","QuantityOrdered":19,"UnitCost":116.4,"TotalCost":2211.6,"MonthKey":"Jun-2026"},{"POID":6007,"Date":"2026-05-18","ItemID":4009,"ItemName":"Headset v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":11,"UnitCost":76.77,"TotalCost":844.47,"MonthKey":"May-2026"},{"POID":6008,"Date":"2026-09-26","ItemID":4047,"ItemName":"Packing Tape v1","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":51,"UnitCost":143.51,"TotalCost":7319.01,"MonthKey":"Sep-2026"},{"POID":6009,"Date":"2026-09-17","ItemID":4048,"ItemName":"Packing Tape v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":18,"UnitCost":189.95,"TotalCost":3419.1,"MonthKey":"Sep-2026"},{"POID":6010,"Date":"2026-06-28","ItemID":4013,"ItemName":"USB Hub v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":23,"UnitCost":211.03,"TotalCost":4853.69,"MonthKey":"Jun-2026"},{"POID":6011,"Date":"2026-09-09","ItemID":4014,"ItemName":"USB Hub v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":28,"UnitCost":244.37,"TotalCost":6842.36,"MonthKey":"Sep-2026"},{"POID":6012,"Date":"2026-05-08","ItemID":4049,"ItemName":"Disinfectant Spray v1","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","QuantityOrdered":47,"UnitCost":323.81,"TotalCost":15219.07,"MonthKey":"May-2026"},{"POID":6013,"Date":"2026-07-09","ItemID":4035,"ItemName":"Office Suite License v1","Category":"Software","Supplier":"CloudSoft Licensing","QuantityOrdered":36,"UnitCost":227.58,"TotalCost":8192.88,"MonthKey":"Jul-2026"},{"POID":6014,"Date":"2026-08-02","ItemID":4048,"ItemName":"Packing Tape v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":32,"UnitCost":189.95,"TotalCost":6078.4,"MonthKey":"Aug-2026"},{"POID":6015,"Date":"2026-06-22","ItemID":4038,"ItemName":"Design Tool License v2","Category":"Software","Supplier":"CloudSoft Licensing","QuantityOrdered":43,"UnitCost":397.25,"TotalCost":17081.75,"MonthKey":"Jun-2026"},{"POID":6016,"Date":"2026-06-27","ItemID":4033,"ItemName":"Bookshelf v3","Category":"Furniture","Supplier":"Emerald Furniture Co.","QuantityOrdered":18,"UnitCost":43.21,"TotalCost":777.78,"MonthKey":"Jun-2026"},{"POID":6017,"Date":"2026-05-05","ItemID":4034,"ItemName":"Whiteboard v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","QuantityOrdered":42,"UnitCost":177.37,"TotalCost":7449.54,"MonthKey":"May-2026"},{"POID":6018,"Date":"2026-09-28","ItemID":4029,"ItemName":"Ergonomic Chair v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","QuantityOrdered":59,"UnitCost":168.74,"TotalCost":9955.66,"MonthKey":"Sep-2026"},{"POID":6019,"Date":"2026-08-20","ItemID":4001,"ItemName":"Laptop v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":59,"UnitCost":379.25,"TotalCost":22375.75,"MonthKey":"Aug-2026"},{"POID":6020,"Date":"2026-08-06","ItemID":4010,"ItemName":"Headset v3","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":40,"UnitCost":25.72,"TotalCost":1028.8,"MonthKey":"Aug-2026"},{"POID":6021,"Date":"2026-05-24","ItemID":4008,"ItemName":"Headset v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":45,"UnitCost":326.82,"TotalCost":14706.9,"MonthKey":"May-2026"},{"POID":6022,"Date":"2026-09-11","ItemID":4044,"ItemName":"Shipping Box (Large) v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":43,"UnitCost":217.54,"TotalCost":9354.22,"MonthKey":"Sep-2026"},{"POID":6023,"Date":"2026-05-18","ItemID":4031,"ItemName":"Bookshelf v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","QuantityOrdered":60,"UnitCost":23.49,"TotalCost":1409.4,"MonthKey":"May-2026"},{"POID":6024,"Date":"2026-09-18","ItemID":4004,"ItemName":"Docking Station v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":25,"UnitCost":170.96,"TotalCost":4274.0,"MonthKey":"Sep-2026"},{"POID":6025,"Date":"2026-08-09","ItemID":4003,"ItemName":"Monitor v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":59,"UnitCost":16.92,"TotalCost":998.28,"MonthKey":"Aug-2026"},{"POID":6026,"Date":"2026-09-17","ItemID":4029,"ItemName":"Ergonomic Chair v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","QuantityOrdered":45,"UnitCost":168.74,"TotalCost":7593.3,"MonthKey":"Sep-2026"},{"POID":6027,"Date":"2026-09-25","ItemID":4005,"ItemName":"Docking Station v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":38,"UnitCost":252.99,"TotalCost":9613.62,"MonthKey":"Sep-2026"},{"POID":6028,"Date":"2026-07-20","ItemID":4033,"ItemName":"Bookshelf v3","Category":"Furniture","Supplier":"Emerald Furniture Co.","QuantityOrdered":48,"UnitCost":43.21,"TotalCost":2074.08,"MonthKey":"Jul-2026"},{"POID":6029,"Date":"2026-05-07","ItemID":4045,"ItemName":"Shipping Box (Large) v3","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":27,"UnitCost":324.98,"TotalCost":8774.46,"MonthKey":"May-2026"},{"POID":6030,"Date":"2026-06-17","ItemID":4035,"ItemName":"Office Suite License v1","Category":"Software","Supplier":"CloudSoft Licensing","QuantityOrdered":40,"UnitCost":227.58,"TotalCost":9103.2,"MonthKey":"Jun-2026"},{"POID":6031,"Date":"2026-05-08","ItemID":4045,"ItemName":"Shipping Box (Large) v3","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":43,"UnitCost":324.98,"TotalCost":13974.14,"MonthKey":"May-2026"},{"POID":6032,"Date":"2026-07-18","ItemID":4013,"ItemName":"USB Hub v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":38,"UnitCost":211.03,"TotalCost":8019.14,"MonthKey":"Jul-2026"},{"POID":6033,"Date":"2026-08-14","ItemID":4008,"ItemName":"Headset v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":35,"UnitCost":326.82,"TotalCost":11438.7,"MonthKey":"Aug-2026"},{"POID":6034,"Date":"2026-06-11","ItemID":4005,"ItemName":"Docking Station v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":52,"UnitCost":252.99,"TotalCost":13155.48,"MonthKey":"Jun-2026"},{"POID":6035,"Date":"2026-08-14","ItemID":4005,"ItemName":"Docking Station v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":23,"UnitCost":252.99,"TotalCost":5818.77,"MonthKey":"Aug-2026"},{"POID":6036,"Date":"2026-04-10","ItemID":4051,"ItemName":"Paper Towels v1","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","QuantityOrdered":17,"UnitCost":194.1,"TotalCost":3299.7,"MonthKey":"Apr-2026"},{"POID":6037,"Date":"2026-08-23","ItemID":4042,"ItemName":"Shipping Box (Small) v3","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":52,"UnitCost":391.44,"TotalCost":20354.88,"MonthKey":"Aug-2026"},{"POID":6038,"Date":"2026-07-05","ItemID":4017,"ItemName":"Printer Paper (Ream) v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","QuantityOrdered":18,"UnitCost":137.37,"TotalCost":2472.66,"MonthKey":"Jul-2026"},{"POID":6039,"Date":"2026-06-08","ItemID":4048,"ItemName":"Packing Tape v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":16,"UnitCost":189.95,"TotalCost":3039.2,"MonthKey":"Jun-2026"},{"POID":6040,"Date":"2026-06-16","ItemID":4011,"ItemName":"Webcam v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":52,"UnitCost":187.31,"TotalCost":9740.12,"MonthKey":"Jun-2026"},{"POID":6041,"Date":"2026-08-06","ItemID":4046,"ItemName":"Bubble Wrap Roll v1","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":37,"UnitCost":327.7,"TotalCost":12124.9,"MonthKey":"Aug-2026"},{"POID":6042,"Date":"2026-05-13","ItemID":4022,"ItemName":"Pen Pack v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","QuantityOrdered":36,"UnitCost":68.88,"TotalCost":2479.68,"MonthKey":"May-2026"},{"POID":6043,"Date":"2026-08-12","ItemID":4021,"ItemName":"Stapler v3","Category":"Office Supplies","Supplier":"Leinster Office Supplies","QuantityOrdered":15,"UnitCost":155.54,"TotalCost":2333.1,"MonthKey":"Aug-2026"},{"POID":6044,"Date":"2026-04-12","ItemID":4002,"ItemName":"Laptop v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":31,"UnitCost":215.28,"TotalCost":6673.68,"MonthKey":"Apr-2026"},{"POID":6045,"Date":"2026-05-15","ItemID":4029,"ItemName":"Ergonomic Chair v1","Category":"Furniture","Supplier":"Emerald Furniture Co.","QuantityOrdered":55,"UnitCost":168.74,"TotalCost":9280.7,"MonthKey":"May-2026"},{"POID":6046,"Date":"2026-09-13","ItemID":4022,"ItemName":"Pen Pack v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","QuantityOrdered":43,"UnitCost":68.88,"TotalCost":2961.84,"MonthKey":"Sep-2026"},{"POID":6047,"Date":"2026-05-10","ItemID":4033,"ItemName":"Bookshelf v3","Category":"Furniture","Supplier":"Emerald Furniture Co.","QuantityOrdered":14,"UnitCost":43.21,"TotalCost":604.94,"MonthKey":"May-2026"},{"POID":6048,"Date":"2026-09-26","ItemID":4015,"ItemName":"Notebook v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","QuantityOrdered":16,"UnitCost":62.49,"TotalCost":999.84,"MonthKey":"Sep-2026"},{"POID":6049,"Date":"2026-09-09","ItemID":4018,"ItemName":"Printer Paper (Ream) v2","Category":"Office Supplies","Supplier":"Leinster Office Supplies","QuantityOrdered":12,"UnitCost":183.57,"TotalCost":2202.84,"MonthKey":"Sep-2026"},{"POID":6050,"Date":"2026-08-09","ItemID":4049,"ItemName":"Disinfectant Spray v1","Category":"Cleaning Supplies","Supplier":"GreenClean Wholesale","QuantityOrdered":18,"UnitCost":323.81,"TotalCost":5828.58,"MonthKey":"Aug-2026"},{"POID":6051,"Date":"2026-06-28","ItemID":4044,"ItemName":"Shipping Box (Large) v2","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":26,"UnitCost":217.54,"TotalCost":5656.04,"MonthKey":"Jun-2026"},{"POID":6052,"Date":"2026-06-05","ItemID":4035,"ItemName":"Office Suite License v1","Category":"Software","Supplier":"CloudSoft Licensing","QuantityOrdered":42,"UnitCost":227.58,"TotalCost":9558.36,"MonthKey":"Jun-2026"},{"POID":6053,"Date":"2026-05-16","ItemID":4045,"ItemName":"Shipping Box (Large) v3","Category":"Packaging","Supplier":"Shannon Packaging Ltd","QuantityOrdered":30,"UnitCost":324.98,"TotalCost":9749.4,"MonthKey":"May-2026"},{"POID":6054,"Date":"2026-09-09","ItemID":4004,"ItemName":"Docking Station v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":54,"UnitCost":170.96,"TotalCost":9231.84,"MonthKey":"Sep-2026"},{"POID":6055,"Date":"2026-08-14","ItemID":4005,"ItemName":"Docking Station v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":27,"UnitCost":252.99,"TotalCost":6830.73,"MonthKey":"Aug-2026"},{"POID":6056,"Date":"2026-09-21","ItemID":4006,"ItemName":"Docking Station v3","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":26,"UnitCost":159.88,"TotalCost":4156.88,"MonthKey":"Sep-2026"},{"POID":6057,"Date":"2026-09-20","ItemID":4015,"ItemName":"Notebook v1","Category":"Office Supplies","Supplier":"Leinster Office Supplies","QuantityOrdered":14,"UnitCost":62.49,"TotalCost":874.86,"MonthKey":"Sep-2026"},{"POID":6058,"Date":"2026-07-28","ItemID":4008,"ItemName":"Headset v1","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":39,"UnitCost":326.82,"TotalCost":12745.98,"MonthKey":"Jul-2026"},{"POID":6059,"Date":"2026-09-11","ItemID":4036,"ItemName":"Antivirus License v1","Category":"Software","Supplier":"CloudSoft Licensing","QuantityOrdered":36,"UnitCost":349.98,"TotalCost":12599.28,"MonthKey":"Sep-2026"},{"POID":6060,"Date":"2026-07-20","ItemID":4009,"ItemName":"Headset v2","Category":"Electronics","Supplier":"Dublin Tech Distributors","QuantityOrdered":12,"UnitCost":76.77,"TotalCost":921.24,"MonthKey":"Jul-2026"}];
+
+const COLORS = ['#5b4bda', '#0aa8c2', '#f2a03d', '#ef5a6f', '#1cb87c', '#e454a0'];
+const CATEGORY_COLORS = {
+  'Electronics': '#5b4bda', 'Office Supplies': '#0aa8c2', 'Furniture': '#f2a03d',
+  'Software': '#e454a0', 'Packaging': '#1cb87c', 'Cleaning Supplies': '#b8862f'
+};
+const STATUS_COLORS = { 'Reorder': '#ef5a6f', 'OK': '#1cb87c' };
+
+function fmtCurrency(v) {
+  if (Math.abs(v) >= 1e6) return '€' + (v/1e6).toFixed(2) + 'M';
+  if (Math.abs(v) >= 1e3) return '€' + (v/1e3).toFixed(1) + 'K';
+  return '€' + v.toFixed(0);
+}
+function fmtCurrencyFull(v) { return '€' + v.toLocaleString(undefined, {maximumFractionDigits: 0}); }
+function fmtNumber(v) { return v.toLocaleString(); }
+
+class Dashboard {
+  constructor(inventory, po) {
+    this.rawInventory = inventory;
+    this.rawPO = po;
+    this.filteredInventory = inventory;
+    this.filteredPO = po;
+    this.charts = {};
+    this.activeTable = 'inventory';
+    this.sortField = 'ItemID';
+    this.sortDir = 'asc';
+    this.page = 0;
+    this.pageSize = 12;
+
+    this.invColumns = [
+      {field: 'ItemID', label: 'ID'},
+      {field: 'ItemName', label: 'Item'},
+      {field: 'Category', label: 'Category', pill: 'category'},
+      {field: 'Supplier', label: 'Supplier'},
+      {field: 'QuantityOnHand', label: 'On hand'},
+      {field: 'ReorderLevel', label: 'Reorder at'},
+      {field: 'InventoryValue', label: 'Value', money: true},
+      {field: 'Status', label: 'Status', pill: 'status'},
+    ];
+    this.poColumns = [
+      {field: 'POID', label: 'PO #'},
+      {field: 'Date', label: 'Date'},
+      {field: 'ItemName', label: 'Item'},
+      {field: 'Category', label: 'Category', pill: 'category'},
+      {field: 'Supplier', label: 'Supplier'},
+      {field: 'QuantityOrdered', label: 'Qty'},
+      {field: 'TotalCost', label: 'Total cost', money: true},
+    ];
+
+    this.init();
+  }
+
+  init() {
+    document.getElementById('meta-rows').textContent = fmtNumber(this.rawInventory.length);
+    document.getElementById('meta-po-rows').textContent = fmtNumber(this.rawPO.length) + ' purchase orders';
+
+    this.populateFilter('f-category', this.rawInventory, 'Category');
+    this.populateFilter('f-supplier', this.rawInventory, 'Supplier');
+    this.populateFilter('f-status', this.rawInventory, 'Status');
+
+    document.getElementById('f-category').addEventListener('change', () => this.applyFilters());
+    document.getElementById('f-supplier').addEventListener('change', () => this.applyFilters());
+    document.getElementById('f-status').addEventListener('change', () => this.applyFilters());
+    document.getElementById('reset-filters').addEventListener('click', () => this.resetFilters());
+    document.getElementById('prev-page').addEventListener('click', () => this.changePage(-1));
+    document.getElementById('next-page').addEventListener('click', () => this.changePage(1));
+    document.getElementById('tab-inventory').addEventListener('click', () => this.switchTable('inventory'));
+    document.getElementById('tab-po').addEventListener('click', () => this.switchTable('po'));
+
+    this.renderTableHead();
+    this.renderAll();
+  }
+
+  populateFilter(selectId, data, field) {
+    const select = document.getElementById(selectId);
+    const values = [...new Set(data.map(d => d[field]))].sort();
+    values.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      select.appendChild(opt);
+    });
+  }
+
+  getFilterValue(id) {
+    const v = document.getElementById(id).value;
+    return v === 'all' ? null : v;
+  }
+
+  resetFilters() {
+    document.getElementById('f-category').value = 'all';
+    document.getElementById('f-supplier').value = 'all';
+    document.getElementById('f-status').value = 'all';
+    this.applyFilters();
+  }
+
+  applyFilters() {
+    const category = this.getFilterValue('f-category');
+    const supplier = this.getFilterValue('f-supplier');
+    const status = this.getFilterValue('f-status');
+
+    this.filteredInventory = this.rawInventory.filter(r =>
+      (!category || r.Category === category) &&
+      (!supplier || r.Supplier === supplier) &&
+      (!status || r.Status === status)
+    );
+    this.filteredPO = this.rawPO.filter(r =>
+      (!category || r.Category === category) &&
+      (!supplier || r.Supplier === supplier)
+    );
+    this.page = 0;
+    this.renderAll();
+  }
+
+  switchTable(which) {
+    this.activeTable = which;
+    this.sortField = which === 'inventory' ? 'ItemID' : 'POID';
+    this.sortDir = 'asc';
+    this.page = 0;
+    document.getElementById('tab-inventory').classList.toggle('active', which === 'inventory');
+    document.getElementById('tab-po').classList.toggle('active', which === 'po');
+    document.getElementById('table-title').textContent = which === 'inventory' ? 'Inventory' : 'Purchase orders';
+    document.getElementById('table-sub').textContent = which === 'inventory'
+      ? 'Sortable — click a column header.'
+      : 'Sortable — click a column header. Most recent first when sorted by date.';
+    this.renderTableHead();
+    this.renderTable();
+  }
+
+  renderAll() {
+    this.renderKPIs();
+    this.renderCharts();
+    this.renderTable();
+  }
+
+  renderKPIs() {
+    const inv = this.filteredInventory;
+    const po = this.filteredPO;
+    const totalValue = inv.reduce((s, r) => s + r.InventoryValue, 0);
+    const reorderItems = inv.filter(r => r.Status === 'Reorder');
+    const forecastCost = reorderItems.reduce((s, r) => s + r.ReorderCost, 0);
+    const totalSpend = po.reduce((s, r) => s + r.TotalCost, 0);
+
+    document.getElementById('kpi-value').textContent = fmtCurrencyFull(totalValue);
+    document.getElementById('kpi-value-sub').textContent = fmtNumber(inv.length) + ' items';
+    document.getElementById('kpi-reorder').textContent = fmtNumber(reorderItems.length);
+    document.getElementById('kpi-reorder-sub').textContent = 'of ' + fmtNumber(inv.length) + ' shown';
+    document.getElementById('kpi-forecast').textContent = fmtCurrencyFull(forecastCost);
+    document.getElementById('kpi-forecast-sub').textContent = 'to restock flagged items';
+    document.getElementById('kpi-spend').textContent = fmtCurrencyFull(totalSpend);
+    document.getElementById('kpi-spend-sub').textContent = fmtNumber(po.length) + ' orders';
+  }
+
+  groupSum(data, field, valueField) {
+    const map = {};
+    data.forEach(r => { map[r[field]] = (map[r[field]] || 0) + r[valueField]; });
+    return map;
+  }
+
+  renderCharts() {
+    this.renderTrendChart();
+    this.renderCategoryChart();
+    this.renderSupplierChart();
+    this.renderStatusChart();
+  }
+
+  renderTrendChart() {
+    const monthly = {};
+    this.filteredPO.forEach(r => {
+      monthly[r.MonthKey] = (monthly[r.MonthKey] || 0) + r.TotalCost;
+    });
+    const labels = Object.keys(monthly).sort((a, b) => new Date('1 ' + a) - new Date('1 ' + b));
+    const values = labels.map(l => monthly[l]);
+
+    if (this.charts.trend) {
+      this.charts.trend.data.labels = labels;
+      this.charts.trend.data.datasets[0].data = values;
+      this.charts.trend.update('none');
+      return;
+    }
+    const ctx = document.getElementById('chart-trend').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(239,90,111,0.30)');
+    gradient.addColorStop(1, 'rgba(239,90,111,0.02)');
+    this.charts.trend = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{
+        label: 'PO spend', data: values, borderColor: '#ef5a6f', backgroundColor: gradient,
+        fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: '#ef5a6f',
+        pointHoverRadius: 6, borderWidth: 3,
+      }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: '#1a2035', padding: 10, callbacks: { label: c => fmtCurrencyFull(c.parsed.y) } }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, ticks: { callback: v => fmtCurrency(v) }, grid: { color: '#eef0fa' } }
+        }
+      }
+    });
+  }
+
+  renderCategoryChart() {
+    const grouped = this.groupSum(this.filteredInventory, 'Category', 'InventoryValue');
+    const labels = Object.keys(grouped);
+    const values = labels.map(l => grouped[l]);
+    const colors = labels.map(l => CATEGORY_COLORS[l] || COLORS[0]);
+
+    if (this.charts.category) {
+      this.charts.category.data.labels = labels;
+      this.charts.category.data.datasets[0].data = values;
+      this.charts.category.data.datasets[0].backgroundColor = colors;
+      this.charts.category.update('none');
+      return;
+    }
+    const ctx = document.getElementById('chart-category').getContext('2d');
+    this.charts.category = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#fff', borderWidth: 3, hoverOffset: 6 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '58%',
+        plugins: {
+          legend: { position: 'right', labels: { font: { family: 'Inter', size: 11, weight: '600' }, usePointStyle: true, padding: 10 } },
+          tooltip: { backgroundColor: '#1a2035', padding: 10, callbacks: { label: c => `${c.label}: ${fmtCurrencyFull(c.parsed)}` } }
+        }
+      }
+    });
+  }
+
+  renderSupplierChart() {
+    const grouped = this.groupSum(this.filteredPO, 'Supplier', 'TotalCost');
+    const labels = Object.keys(grouped).sort((a,b) => grouped[b]-grouped[a]);
+    const values = labels.map(l => grouped[l]);
+    const colors = labels.map((_, i) => COLORS[i % COLORS.length]);
+
+    if (this.charts.supplier) {
+      this.charts.supplier.data.labels = labels;
+      this.charts.supplier.data.datasets[0].data = values;
+      this.charts.supplier.data.datasets[0].backgroundColor = colors;
+      this.charts.supplier.update('none');
+      return;
+    }
+    const ctx = document.getElementById('chart-supplier').getContext('2d');
+    this.charts.supplier = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 6 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a2035', padding: 10, callbacks: { label: c => fmtCurrencyFull(c.parsed.x) } } },
+        scales: {
+          x: { beginAtZero: true, ticks: { callback: v => fmtCurrency(v) }, grid: { color: '#eef0fa' } },
+          y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  renderStatusChart() {
+    const categories = [...new Set(this.filteredInventory.map(r => r.Category))].sort();
+    const reorderCounts = categories.map(c => this.filteredInventory.filter(r => r.Category === c && r.Status === 'Reorder').length);
+    const okCounts = categories.map(c => this.filteredInventory.filter(r => r.Category === c && r.Status === 'OK').length);
+
+    if (this.charts.status) {
+      this.charts.status.data.labels = categories;
+      this.charts.status.data.datasets[0].data = reorderCounts;
+      this.charts.status.data.datasets[1].data = okCounts;
+      this.charts.status.update('none');
+      return;
+    }
+    const ctx = document.getElementById('chart-status').getContext('2d');
+    this.charts.status = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: categories,
+        datasets: [
+          { label: 'Reorder', data: reorderCounts, backgroundColor: '#ef5a6f', borderRadius: 4, stack: 's' },
+          { label: 'OK', data: okCounts, backgroundColor: '#1cb87c', borderRadius: 4, stack: 's' },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { family: 'Inter', size: 11, weight: '600' }, usePointStyle: true } },
+          tooltip: { backgroundColor: '#1a2035', padding: 10 }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#eef0fa' } }
+        }
+      }
+    });
+  }
+
+  renderTableHead() {
+    const columns = this.activeTable === 'inventory' ? this.invColumns : this.poColumns;
+    const tr = document.getElementById('table-head');
+    tr.innerHTML = columns.map(c => `<th data-field="${c.field}">${c.label}</th>`).join('');
+    tr.querySelectorAll('th').forEach(th => {
+      th.addEventListener('click', () => {
+        const field = th.dataset.field;
+        if (this.sortField === field) {
+          this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          this.sortField = field;
+          this.sortDir = 'asc';
+        }
+        this.page = 0;
+        this.renderTable();
+      });
+    });
+  }
+
+  renderTable() {
+    const columns = this.activeTable === 'inventory' ? this.invColumns : this.poColumns;
+    const data = this.activeTable === 'inventory' ? this.filteredInventory : this.filteredPO;
+
+    const sorted = [...data].sort((a, b) => {
+      const av = a[this.sortField], bv = b[this.sortField];
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return this.sortDir === 'asc' ? cmp : -cmp;
+    });
+    const totalPages = Math.max(1, Math.ceil(sorted.length / this.pageSize));
+    this.page = Math.min(this.page, totalPages - 1);
+    const start = this.page * this.pageSize;
+    const pageRows = sorted.slice(start, start + this.pageSize);
+
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = pageRows.map(r => {
+      return '<tr>' + columns.map(c => {
+        let v = r[c.field];
+        if (c.pill === 'category') {
+          const color = CATEGORY_COLORS[v] || '#5b4bda';
+          return `<td><span class="pill" style="background:${color}">${v}</span></td>`;
+        }
+        if (c.pill === 'status') {
+          const color = STATUS_COLORS[v] || '#5b4bda';
+          return `<td><span class="pill" style="background:${color}">${v}</span></td>`;
+        }
+        if (c.money) v = fmtCurrencyFull(v);
+        else if (typeof v === 'number') v = fmtNumber(v);
+        return `<td>${v}</td>`;
+      }).join('') + '</tr>';
+    }).join('');
+
+    document.getElementById('table-range').textContent =
+      sorted.length ? `Showing ${start + 1}–${Math.min(start + this.pageSize, sorted.length)} of ${fmtNumber(sorted.length)} rows` : 'No rows match these filters';
+    document.getElementById('prev-page').disabled = this.page === 0;
+    document.getElementById('next-page').disabled = this.page >= totalPages - 1;
+  }
+
+  changePage(delta) {
+    this.page += delta;
+    this.renderTable();
+  }
+}
+
+const dashboard = new Dashboard(INVENTORY, PO);
+</script>
+</body>
+</html>
