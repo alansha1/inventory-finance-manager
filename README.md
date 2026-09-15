@@ -94,3 +94,10 @@ purchase orders over the last 6 months. Generated for demonstration purposes.
 ## Tools used
 
 Microsoft Excel (VBA, Power Query, Power Pivot) · openpyxl (base workbook generation)
+## Proof of automation
+
+   ![VBA automation](vba-automation.png)
+   Clicking "Generate POs for Low Stock" scans Inventory and auto-creates purchase orders for every item below its reorder level.
+
+   ![Power Pivot data model](power-pivot-model.png)
+   Relationships connecting Inventory, Purchase Orders, and Suppliers — enabling cross-table analysis without manual lookups.
